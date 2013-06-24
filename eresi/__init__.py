@@ -1,5 +1,6 @@
 from ctypes import *
 import os.path 
+import eresi.aspect
 
 class PyEresiErr(Exception):
 	pass
@@ -11,6 +12,9 @@ class LibNotFound(PyEresiErr):
 	pass
 
 class UnknownFn(LibLoadErr):
+	pass
+
+class LibStatusErr(PyEresiErr):
 	pass
 
 install_dir = None
@@ -29,13 +33,9 @@ def lib_paths(lib):
 	for x in ["64", "32"]:
 		yield os.path.join(install_dir, lib + x + ".so")
 
-libaspect = None
-
 def eresi_lib(lib):
-	global libaspect
-
-	if not libaspect:
-		libaspect = load_eresi_lib("libaspect")
+	if lib != "libaspect":
+		eresi.aspect.init()
 
 	return load_eresi_lib(lib)
 
