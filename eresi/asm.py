@@ -80,6 +80,9 @@ class Instr(object):
 	def __str__(self):
 		return self.att()
 
+	def operand_count(self):
+		return operand_count(self.ei)
+
 ARCH_IA32 = 0
 ARCH_SPARC = 1
 ARCH_MIPS = 2
@@ -94,6 +97,17 @@ def att(e_instr, addr):
 	global libasm
 	
 	return libasm.call("asm_display_instr_att", pointer(e_instr), eresi.aspect.eresi_addr(addr))
+
+def operand_count(e_instr):
+	global libasm
+
+	return libasm.call(
+		"asm_operand_get_count", 
+		pointer(e_instr), 
+		c_int(0),
+		c_int(0),
+		c_void_p(0)
+	)
 
 class InstrSeqMember(object):
 	def __init__(self, base, offset, instr):
@@ -278,6 +292,11 @@ def init_libasm_prototypes(libasm):
 		"asm_display_instr_att": (
 			[c_void_p, eresi.aspect.eresi_addr_class()],
 			c_char_p
+		),
+	
+		"asm_operand_get_count": (
+			[c_void_p, c_int, c_int, c_void_p],
+			c_int
 		)
 	}
 
