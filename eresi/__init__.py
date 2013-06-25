@@ -17,6 +17,13 @@ class UnknownFn(LibLoadErr):
 class LibStatusErr(PyEresiErr):
 	pass
 
+class EresiDoesntImplement(PyEresiErr):
+	''' 
+	raise when a function of a library is invoked which isnt yet fully
+	implemented by the ERESI library.
+	'''
+	pass
+
 install_dir = None
 bits = 64
 

@@ -91,6 +91,19 @@ class Instr(object):
 		'OTHER':			0x1000000 # Type that doesn't fit the ones above.
 	}
 
+	ARITH_TYPES = {
+		'ADD':		0x1,
+		'SUB':		0x2,
+		'MUL':		0x4,
+		'DIV':		0x8,
+		'OR':		0x10,
+		'XOR':		0x20,
+		'AND':		0x40,
+		'SL':		0x80,
+		'SR':		0x100,
+		'NOT':		0x200
+	}
+
 	def __init__(self, eresi_instr, proc):
 		self.ei = eresi_instr
 		self.proc = proc
@@ -113,13 +126,34 @@ class Instr(object):
 	def operand_count(self):
 		return operand_count(self.ei)
 
-	def types(self):
-		types = []
-		for (name, bit) in self.__class__.TYPES.items():
-			if (self.ei.type & bit):
-				types.append(name)
+	@staticmethod
+	def matching_flags(flag_dict, value):
+		matches = []
+		for (name, bit) in flag_dict.items():
+			if (value & bit):
+				matches.append(name)
 
-		return set(types)
+		return set(matches)
+
+	def types(self):
+		return self.__class__.matching_flags(
+			self.__class__.TYPES,
+			self.ei.type
+		)
+
+	def is_arith(self):
+		return ((self.ei.type & self.__class__.TYPES['ARITH']) != 0)
+
+	def arith_types(self):
+		raise EresiDoesntImplement("eresi doesnt seem to mark the arith type correctly")
+
+		if self.is_arith():
+			return self.__class__.matching_flags(
+				self.__class__.ARITH_TYPES,
+				self.ei.arith
+			)
+		
+		return set([])
 
 ARCH_IA32 = 0
 ARCH_SPARC = 1
