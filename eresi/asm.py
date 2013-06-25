@@ -74,6 +74,11 @@ class Instr(object):
 	def att(self):
 		return att(self.ei, 0x8048000)
 
+	def __repr__(self):
+		return repr(self.att())
+
+	def __str__(self):
+		return self.att()
 
 ARCH_IA32 = 0
 ARCH_SPARC = 1
@@ -89,6 +94,104 @@ def att(e_instr, addr):
 	global libasm
 	
 	return libasm.call("asm_display_instr_att", pointer(e_instr), eresi.aspect.eresi_addr(addr))
+
+class InstrSeqMember(object):
+	def __init__(self, base, offset, instr):
+		self.base = base
+		self.offset = offset
+		self.instr = instr
+
+	def __repr__(self):
+		return repr((
+			self.base,
+			self.offset,
+			self.instr
+		))
+
+	def __str__(self):
+		return repr(self)
+	
+class InstrSeq(object):
+	def __init__(self, base, instr_list):
+		self.ilist = instr_list
+
+		self.base = 0
+		self.base_addr(base)
+
+	def base_addr(self, new_base = None):
+		if new_base:
+			if new_base < 0:
+				raise ValueError("invalid base addr %d" % new_base)
+			self.base = new_base
+
+		return self.base
+
+	def __len__(self):
+		return len(self.ilist)
+
+	def __repr__(self):
+		return repr((
+			self.base,
+			self.ilist
+		))
+
+	def __str__(self):
+		return repr(self)
+
+	def __list__(self):
+		return [x for x in self]
+
+	def __contains__(self, item):
+		return list(self).__contains__(item)
+
+	def __iter__(self):
+		offset = 0
+		
+		for instr in self.ilist:
+			yield InstrSeqMember(self.base, offset, instr)
+			offset += len(instr)
+
+	def __getitem__(self, key):
+		if type(key) is int:
+			return self.nth_instr(key)
+
+		elif type(key) is slice:
+			arr = [x for x in self].__getitem__(key)
+
+			#it doesnt make sense to have an empty instruction sequence
+			#slice because we cant determine the base address
+			if len(arr) < 1: 
+				raise KeyError("slice results in an empty instruction sequence")
+
+			return InstrSeq(
+				arr[0].base + arr[0].offset,
+				[x.instr for x in arr]
+			)
+
+
+		raise TypeError("invalid key: %r" % key)
+
+	def nth_instr(self, n):
+		i = 0
+
+		if n < 0 or n >= len(self.ilist):
+			return IndexError("index %d out of range" % n)
+
+		for ismember in self:
+			if i == n:
+				return ismember
+			i += 1
+
+		raise Exception("shouldnt get here")
+
+
+class DisassembleErr(PyEresiErr):
+	
+	def __init__(self, msg, bytes, offset):
+		super(PyEresiErr, self).__init__(msg)
+		self.bytes = bytes
+		self.offset = offset
+
 
 class Asm(object):
 	
@@ -110,7 +213,26 @@ class Asm(object):
 		if result != 1:
 			raise LibStatusErr("error initializing asm processor: %r" % result)
 
-			
+	def disassemble(self, bytes):
+		ins = []
+		amt_read = 0
+		blen = len(bytes)
+
+		while amt_read < blen:
+			try:
+				instr = self.read_instr(bytes[amt_read:])
+			except LibStatusErr as e:
+				raise DisassembleErr(
+					"error disassembling at offset %d: %s" % (amt_read, e),
+					bytes,
+					amt_read
+				)
+					
+			amt_read += len(instr)
+			ins.append(instr)
+
+		return InstrSeq(0, ins)
+
 	def read_instr(self, bytes):
 		if len(bytes) < 1:
 			return None
