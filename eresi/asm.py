@@ -60,6 +60,40 @@ class eresi_Instr(Structure):
 	]
 
 
+def matching_flags(flag_dict, value):
+	matches = []
+	for (name, bit) in flag_dict.items():
+		if (value & bit):
+			matches.append(name)
+
+	return set(matches)
+
+
+class Operand(object):
+	
+	TYPES = {
+		'NONE':	0x0, # Undefined operand type
+		'IMM':	0x1, # Immediate operand type
+		'REG':	0x2, # Register operand type
+		'MEM':	0x4  # Memory access operand type
+	}
+
+	def __init__(self, e_operand):
+		self.eop = e_operand
+
+	def __len__(self):
+		return self.eop.len
+
+	def types(self):
+		raise EresiDoesntImplement("operand types dont seem to be accurate")
+		return matching_flags(self.__class__.TYPES, self.eop.type)
+
+	def type(self):
+		return operand_type_string(self.eop.type)
+
+	def name(self):
+		return str(self.eop.name)
+
 class Instr(object):
 
 	TYPES = {
@@ -126,17 +160,12 @@ class Instr(object):
 	def operand_count(self):
 		return operand_count(self.ei)
 
-	@staticmethod
-	def matching_flags(flag_dict, value):
-		matches = []
-		for (name, bit) in flag_dict.items():
-			if (value & bit):
-				matches.append(name)
-
-		return set(matches)
+	def operands(self):
+		for i in xrange(0, self.operand_count()):
+			yield Operand(self.ei.op[i])
 
 	def types(self):
-		return self.__class__.matching_flags(
+		return matching_flags(
 			self.__class__.TYPES,
 			self.ei.type
 		)
@@ -148,7 +177,7 @@ class Instr(object):
 		raise EresiDoesntImplement("eresi doesnt seem to mark the arith type correctly")
 
 		if self.is_arith():
-			return self.__class__.matching_flags(
+			return matching_flags(
 				self.__class__.ARITH_TYPES,
 				self.ei.arith
 			)
@@ -179,6 +208,14 @@ def operand_count(e_instr):
 		c_int(0),
 		c_int(0),
 		c_void_p(0)
+	)
+
+def operand_type_string(typ):
+	global libasm
+
+	return libasm.call(
+		"asm_operand_type_string", 
+		c_int(typ)
 	)
 
 class InstrSeqMember(object):
@@ -369,6 +406,11 @@ def init_libasm_prototypes(libasm):
 		"asm_operand_get_count": (
 			[c_void_p, c_int, c_int, c_void_p],
 			c_int
+		),
+	
+		"asm_operand_type_string": (
+			[c_int],
+			c_char_p
 		)
 	}
 
