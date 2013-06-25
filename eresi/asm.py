@@ -59,7 +59,37 @@ class eresi_Instr(Structure):
 		("arith",				c_uint			)
 	]
 
+
 class Instr(object):
+
+	TYPES = {
+		'NONE':				0x0, # Undefined instruction type.
+		'BRANCH':			0x1, # Branching instruction.
+		'CALLPROC':			0x2, # Sub Procedure calling instruction.
+		'RETPROC':			0x4, # Return instruction
+		'ARITH':			0x8, # Arithmetic (or logic) instruction.
+		'LOAD':				0x10, # Instruction that reads from memory.
+		'STORE':			0x20, # Instruction that writes in memory.
+		'ARCH':				0x40, # Architecture dependent instruction.
+		'WRITEFLAG':		0x80, # Flag-modifier instruction.
+		'READFLAG':			0x100, # Flag-reader instruction.
+		'INT':				0x200, # Interrupt/call-gate instruction.
+		'ASSIGN':			0x400, # Assignment instruction.
+		'COMPARISON':		0x800, # Instruction that performs comparison or test.
+		'CONTROL':			0x1000, # Instruction modifies control registers.
+		'NOP':				0x2000, # Instruction that does nothing.
+		'TOUCHSP':			0x4000, # Instruction modifies stack pointer.
+		'BITTEST':			0x8000, # Instruction investigates values of bits in the operands.
+		'BITSET':			0x10000, # Instruction modifies values of bits in the operands.
+		'INCDEC':			0x20000, # Instruction does an increment or decrement
+		'PROLOG':			0x40000, # Instruction creates a new function prolog
+		'EPILOG':			0x80000, # Instruction creates a new function epilog
+		'STOP':				0x100000, # Instruction stops the program
+		'IO':				0x200000, # Instruction accesses I/O locations (e.g. ports).
+		'CONDCONTROL':		0x400000, # Instruction executes conditionally.
+		'INDCONTROL':		0x800000, # Instruction changes control indirectly.
+		'OTHER':			0x1000000 # Type that doesn't fit the ones above.
+	}
 
 	def __init__(self, eresi_instr, proc):
 		self.ei = eresi_instr
@@ -82,6 +112,14 @@ class Instr(object):
 
 	def operand_count(self):
 		return operand_count(self.ei)
+
+	def types(self):
+		types = []
+		for (name, bit) in self.__class__.TYPES.items():
+			if (self.ei.type & bit):
+				types.append(name)
+
+		return set(types)
 
 ARCH_IA32 = 0
 ARCH_SPARC = 1
