@@ -3,6 +3,15 @@ import eresi
 
 aspect = None
 
+def eresi_addr(num):
+	return eresi_addr_class()(num)
+
+def eresi_addr_class():
+	if eresi.bits == 32:
+		return c_uint32
+	else:
+		return c_uint64
+	
 def init():
 	global aspect
 	

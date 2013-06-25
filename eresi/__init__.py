@@ -18,20 +18,29 @@ class LibStatusErr(PyEresiErr):
 	pass
 
 install_dir = None
+bits = 64
 
-def install_path(path):
+def init(path, eresi_bits=64):
 	global install_dir
+	global bits
+
 	install_dir = path
+	if eresi_bits == 32:
+		bits = 32
+	elif eresi_bits == 64:
+		bits = 64
+	else:
+		raise PyEresiErr("invalid bits value %r: must be 32 or 64")
 
 def lib_paths(lib):
 	global install_dir
+	global bits
 
 	if not install_dir:
 		raise PyEresiErr("install location of eresi has not been set. " + \
 							"call eresi.install_path(\"/path/to/eresi/libs\").")
 
-	for x in ["64", "32"]:
-		yield os.path.join(install_dir, lib + x + ".so")
+	yield os.path.join(install_dir, lib + str(bits) + ".so")
 
 def eresi_lib(lib):
 	if lib != "libaspect":

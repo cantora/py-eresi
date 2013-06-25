@@ -71,8 +71,9 @@ class Instr(object):
 	def mnemonic(self):
 		return self.proc.mnemonic(self.ei)
 
-#	def att(self):
-#		return att(self.ei, 
+	def att(self):
+		return att(self.ei, 0x8048000)
+
 
 ARCH_IA32 = 0
 ARCH_SPARC = 1
@@ -83,6 +84,11 @@ def instr_len(e_instr):
 	global libasm
 
 	return libasm.call("asm_instr_len", pointer(e_instr))
+
+def att(e_instr, addr):
+	global libasm
+	
+	return libasm.call("asm_display_instr_att", pointer(e_instr), eresi.aspect.eresi_addr(addr))
 
 class Asm(object):
 	
@@ -145,8 +151,12 @@ def init_libasm_prototypes(libasm):
 		"asm_instr_get_memonic": (
 			[c_void_p, c_void_p],
 			c_char_p
-		)
+		),
 
+		"asm_display_instr_att": (
+			[c_void_p, eresi.aspect.eresi_addr_class()],
+			c_char_p
+		)
 	}
 
 	for (fn, proto) in protos.items():
