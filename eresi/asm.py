@@ -1,8 +1,8 @@
 from ctypes import *
 from eresi import *
 
-libasm = None
-
+#asm.init() must be called before this module can be used.
+libasm = None 
 
 class eresi_Processor(Structure):
 	_fields_ = [
@@ -66,28 +66,33 @@ class Instr(object):
 		self.proc = proc
 
 	def __len__(self):
-		return self.proc.__class__.instr_len(self.ei)
+		return instr_len(self.ei)
 	
 	def mnemonic(self):
 		return self.proc.mnemonic(self.ei)
+
+#	def att(self):
+#		return att(self.ei, 
 
 ARCH_IA32 = 0
 ARCH_SPARC = 1
 ARCH_MIPS = 2
 ARCH_ARM = 3
 
+def instr_len(e_instr):
+	global libasm
+
+	return libasm.call("asm_instr_len", pointer(e_instr))
+
 class Asm(object):
 	
 	def __init__(self, arch):
 		global libasm
-		if not libasm:
-			libasm = Library(eresi_lib("libasm"))
 
 		self.lib = libasm
 		self.arch = arch
 		self.proc = eresi_Processor()
 		self.init_processor()
-		self.init_prototypes()
 
 	def call(self, fn_name, *args):
 		#print "call %s(%s)" % (fn_name, ", ".join([repr(x) for x in args]))
@@ -99,27 +104,6 @@ class Asm(object):
 		if result != 1:
 			raise LibStatusErr("error initializing asm processor: %r" % result)
 
-	def init_prototypes(self):
-		protos = {
-			"asm_init_arch": (
-				[c_void_p, c_int],
-				c_int
-			),
-
-			"asm_read_instr": (
-				[c_void_p, c_void_p, c_uint, c_void_p],
-				c_int
-			),
-
-			"asm_instr_get_memonic": (
-				[c_void_p, c_void_p],
-				c_char_p
-			)
-
-		}
-
-		for (fn, proto) in protos.items():
-			self.lib.prototype(fn, *proto)
 			
 	def read_instr(self, bytes):
 		if len(bytes) < 1:
@@ -135,11 +119,6 @@ class Asm(object):
 
 		return Instr(instr, self)
 
-	@staticmethod
-	def instr_len(e_instr):
-		global libasm
-
-		return libasm.call("asm_instr_len", pointer(e_instr))
 
 	def mnemonic(self, e_instr):
 		return self.call(
@@ -147,3 +126,33 @@ class Asm(object):
 			pointer(e_instr), 
 			pointer(self.proc)
 		)
+
+
+##### init this module ####
+
+def init_libasm_prototypes(libasm):
+	protos = {
+		"asm_init_arch": (
+			[c_void_p, c_int],
+			c_int
+		),
+
+		"asm_read_instr": (
+			[c_void_p, c_void_p, c_uint, c_void_p],
+			c_int
+		),
+
+		"asm_instr_get_memonic": (
+			[c_void_p, c_void_p],
+			c_char_p
+		)
+
+	}
+
+	for (fn, proto) in protos.items():
+		libasm.prototype(fn, *proto)
+
+def init():
+	global libasm
+	libasm = Library(eresi_lib("libasm"))
+	init_libasm_prototypes(libasm)
