@@ -64,10 +64,36 @@ def load_eresi_lib(lib):
 class Library(object):
 	def __init__(self, handle):
 		self.handle = handle
+		self.fn_map = {}
 
+	@staticmethod
+	def set_fn_attrs(fn_obj, arg_types, res_type):
+		if arg_types:
+			fn_obj.argtypes = arg_types
+		if res_type:
+			fn_obj.restype = res_type
+
+	def prototype(self, fn_name, arg_types, res_type):
+		if fn_name in self.fn_map:
+			if self.fn_map[fn_name][0]:
+				self.__class__.set_fn_attrs(self.fn_map[fn_name][0], arg_types, res_type)
+
+			self.fn_map[fn_name] = (self.fn_map[fn_name][0], arg_types, res_type)
+		else: 
+			self.fn_map[fn_name] = (None, arg_types, res_type)
+		
 	def call(self, fn_name, *args):
-		try:
-			return self.handle.__getattr__(fn_name)(*args)
-		except AttributeError as e:
-			raise UnknownFn("unknown function %r in library %r: %s" % (fn_name, self.handle, e))
+		if fn_name not in self.fn_map:
+			self.fn_map[fn_name] = (None, None, None)
 
+		tpl = self.fn_map[fn_name]
+		if not tpl[0]:
+			try:
+				fn_obj = self.handle.__getattr__(fn_name)
+			except AttributeError as e:
+				raise UnknownFn("unknown function %r in library %r: %s" % (fn_name, self.handle, e))
+
+			self.fn_map[fn_name] = (fn_obj, tpl[1], tpl[2])
+			self.__class__.set_fn_attrs(*self.fn_map[fn_name])
+
+		return self.fn_map[fn_name][0](*args)

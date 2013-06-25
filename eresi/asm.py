@@ -68,6 +68,9 @@ class Instr(object):
 	def __len__(self):
 		return self.proc.__class__.instr_len(self.ei)
 	
+	def mnemonic(self):
+		return self.proc.mnemonic(self.ei)
+
 ARCH_IA32 = 0
 ARCH_SPARC = 1
 ARCH_MIPS = 2
@@ -84,7 +87,8 @@ class Asm(object):
 		self.arch = arch
 		self.proc = eresi_Processor()
 		self.init_processor()
-		
+		self.init_prototypes()
+
 	def call(self, fn_name, *args):
 		#print "call %s(%s)" % (fn_name, ", ".join([repr(x) for x in args]))
 		return self.lib.call(fn_name, *args)
@@ -94,7 +98,29 @@ class Asm(object):
 
 		if result != 1:
 			raise LibStatusErr("error initializing asm processor: %r" % result)
-	
+
+	def init_prototypes(self):
+		protos = {
+			"asm_init_arch": (
+				[c_void_p, c_int],
+				c_int
+			),
+
+			"asm_read_instr": (
+				[c_void_p, c_void_p, c_uint, c_void_p],
+				c_int
+			),
+
+			"asm_instr_get_memonic": (
+				[c_void_p, c_void_p],
+				c_char_p
+			)
+
+		}
+
+		for (fn, proto) in protos.items():
+			self.lib.prototype(fn, *proto)
+			
 	def read_instr(self, bytes):
 		if len(bytes) < 1:
 			return None
@@ -114,3 +140,10 @@ class Asm(object):
 		global libasm
 
 		return libasm.call("asm_instr_len", pointer(e_instr))
+
+	def mnemonic(self, e_instr):
+		return self.call(
+			"asm_instr_get_memonic",
+			pointer(e_instr), 
+			pointer(self.proc)
+		)
