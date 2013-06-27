@@ -41,9 +41,9 @@ class eresi_Operand(Structure):
 
 class eresi_Instr(Structure):
 	_fields_ = [
-		("ptr_instr", 			c_ubyte			),
+		("ptr_instr", 			c_void_p		),
 		("proc",				c_void_p		),
-		("name", 				c_void_p		),
+		("name", 				c_char_p		),
 		("instr",				c_int			),
 		("type",				c_int			),
 		("prefix",				c_int			),
@@ -145,17 +145,23 @@ class Instr(object):
 	def __len__(self):
 		return instr_len(self.ei)
 	
+	def bytes(self):
+		#libasm never uses ptr_instr besides to assign to it. i suspect there may be a bug here
+		#print "ptr_instr: 0x%08x" % self.ei.ptr_instr
+		raise Exception("doesnt work right now")
+		return string_at(self.ei.ptr_instr, len(self))
+
 	def mnemonic(self):
 		return self.proc.mnemonic(self.ei)
 
-	def att(self):
-		return att(self.ei, 0x8048000)
+	def att(self, addr):
+		return att(self.ei, addr)
 
 	def __repr__(self):
-		return repr(self.att())
+		return repr(self.att(0))
 
 	def __str__(self):
-		return self.att()
+		return self.att(0)
 
 	def operand_count(self):
 		return operand_count(self.ei)
@@ -205,19 +211,19 @@ ARCH_ARM = 3
 def instr_len(e_instr):
 	global libasm
 
-	return libasm.call("asm_instr_len", pointer(e_instr))
+	return libasm.call("asm_instr_len", byref(e_instr))
 
 def att(e_instr, addr):
 	global libasm
 	
-	return libasm.call("asm_display_instr_att", pointer(e_instr), eresi.aspect.eresi_addr(addr))
+	return libasm.call("asm_display_instr_att", byref(e_instr), eresi.aspect.eresi_addr(addr))
 
 def operand_count(e_instr):
 	global libasm
 
 	return libasm.call(
 		"asm_operand_get_count", 
-		pointer(e_instr), 
+		byref(e_instr), 
 		c_int(0),
 		c_int(0),
 		c_void_p(0)
@@ -245,7 +251,14 @@ class InstrSeqMember(object):
 		))
 
 	def __str__(self):
-		return repr(self)
+		addr_fmt = "%08x"
+
+		return "%4s%-16s%2s%-16s%s%s" % (
+			"", addr_fmt % (self.base+self.offset),
+			"", self.instr,
+			insn[2], comment
+		)
+
 	
 class InstrSeq(object):
 	def __init__(self, base, instr_list):
@@ -353,7 +366,7 @@ class Asm(object):
 		return self.lib.call(fn_name, *args)
 
 	def init_processor(self, arch):
-		result = self.call("asm_init_arch", pointer(self.proc), c_int(arch))
+		result = self.call("asm_init_arch", byref(self.proc), c_int(arch))
 
 		if result != 1:
 			raise LibStatusErr("error initializing asm processor: %r" % result)
@@ -386,7 +399,7 @@ class Asm(object):
 		buf = (c_ubyte * l.value)(*[ord(b) for b in bytes])
 		instr = eresi_Instr()
 
-		result = self.call("asm_read_instr", pointer(instr), pointer(buf), l, pointer(self.proc))
+		result = self.call("asm_read_instr", byref(instr), byref(buf), l, byref(self.proc))
 		if result < 0:
 			raise LibStatusErr("result from asm_read_instr was failure: %r" % result)
 
@@ -396,8 +409,8 @@ class Asm(object):
 	def mnemonic(self, e_instr):
 		return self.call(
 			"asm_instr_get_memonic",
-			pointer(e_instr), 
-			pointer(self.proc)
+			byref(e_instr), 
+			byref(self.proc)
 		)
 
 
