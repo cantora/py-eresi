@@ -170,20 +170,32 @@ class Instr(object):
 			self.ei.type
 		)
 
-	def is_arith(self):
-		return ((self.ei.type & self.__class__.TYPES['ARITH']) != 0)
+	def is_type(self, t):
+		return ((self.ei.type & self.__class__.TYPES[t]) != 0)
 
 	def arith_types(self):
 		if self.proc.is_ia32():
 			raise EresiDoesntImplement("eresi doesnt seem to mark the arith type correctly for ia32")
 
-		if self.is_arith():
+		if self.is_arith(): #this method is dynamically generated below
 			return matching_flags(
 				self.__class__.ARITH_TYPES,
 				self.ei.arith
 			)
 		
 		return set([])
+
+	@staticmethod
+	def add_type_check_method(t):
+		def tmp(self):
+			return self.is_type(t)
+		
+		tmp.__name__ = "is_%s" % t.lower()
+		setattr(Instr, tmp.__name__, tmp)
+		
+	
+for t in Instr.TYPES:
+	Instr.add_type_check_method(t)
 
 ARCH_IA32 = 0
 ARCH_SPARC = 1
