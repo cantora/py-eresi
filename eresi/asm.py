@@ -174,7 +174,8 @@ class Instr(object):
 		return ((self.ei.type & self.__class__.TYPES['ARITH']) != 0)
 
 	def arith_types(self):
-		raise EresiDoesntImplement("eresi doesnt seem to mark the arith type correctly")
+		if self.proc.is_ia32():
+			raise EresiDoesntImplement("eresi doesnt seem to mark the arith type correctly for ia32")
 
 		if self.is_arith():
 			return matching_flags(
@@ -322,16 +323,25 @@ class Asm(object):
 		global libasm
 
 		self.lib = libasm
-		self.arch = arch
 		self.proc = eresi_Processor()
-		self.init_processor()
+		self.init_processor(arch)
+
+	@staticmethod
+	def ia32():
+		return Asm(ARCH_IA32)
+
+	def arch(self):
+		return int(self.proc.type)
+
+	def is_ia32(self):
+		return (self.arch() == ARCH_IA32)
 
 	def call(self, fn_name, *args):
 		#print "call %s(%s)" % (fn_name, ", ".join([repr(x) for x in args]))
 		return self.lib.call(fn_name, *args)
 
-	def init_processor(self):
-		result = self.call("asm_init_arch", pointer(self.proc), c_int(self.arch))
+	def init_processor(self, arch):
+		result = self.call("asm_init_arch", pointer(self.proc), c_int(arch))
 
 		if result != 1:
 			raise LibStatusErr("error initializing asm processor: %r" % result)
