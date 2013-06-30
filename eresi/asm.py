@@ -360,6 +360,10 @@ class Asm(object):
 	def ia32():
 		return Asm(ARCH_IA32)
 
+	@staticmethod
+	def arm():
+		return Asm(ARCH_ARM)
+
 	def arch(self):
 		return int(self.proc.type)
 
