@@ -149,6 +149,12 @@ class Instr(object):
 	def bytes(self):
 		return string_at(self.ei.ptr_instr, len(self))
 
+	def hex_bytes(self):
+		return "".join(map(
+			lambda b: "%02x" % ord(b),
+			self.bytes()
+		))
+
 	def mnemonic(self):
 		return self.proc.mnemonic(self.ei)
 
@@ -245,6 +251,7 @@ class InstrSeqMember(object):
 		return repr((
 			self.base,
 			self.offset,
+			self.instr.hex_bytes(),
 			self.instr
 		))
 
@@ -254,7 +261,7 @@ class InstrSeqMember(object):
 		
 		return "%4s%-16s%2s%-16s%s%s" % (
 			"", addr_fmt % (addr),
-			"", "".join(map(lambda b: "%02x" % ord(b), self.instr.bytes())),
+			"", self.instr.hex_bytes(),
 			self.instr.att(addr), ""
 		)
 
@@ -278,10 +285,7 @@ class InstrSeq(object):
 		return len(self.ilist)
 
 	def __repr__(self):
-		return repr((
-			self.base,
-			self.ilist
-		))
+		return repr(list(self))
 
 	def __str__(self):
 		return "\n".join([
