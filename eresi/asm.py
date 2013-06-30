@@ -284,7 +284,9 @@ class InstrSeq(object):
 		))
 
 	def __str__(self):
-		return repr(self)
+		return "\n".join([
+			str(x) for x in self
+		])
 
 	def __list__(self):
 		return [x for x in self]
