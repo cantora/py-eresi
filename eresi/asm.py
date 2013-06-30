@@ -250,11 +250,12 @@ class InstrSeqMember(object):
 
 	def __str__(self):
 		addr_fmt = "%08x"
-
+		addr = self.base+self.offset
+		
 		return "%4s%-16s%2s%-16s%s%s" % (
-			"", addr_fmt % (self.base+self.offset),
-			"", self.instr,
-			insn[2], comment
+			"", addr_fmt % (addr),
+			"", "".join(map(lambda b: "%02x" % ord(b), self.instr.bytes())),
+			self.instr.att(addr), ""
 		)
 
 	
