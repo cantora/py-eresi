@@ -138,17 +138,15 @@ class Instr(object):
 		'NOT':		0x200
 	}
 
-	def __init__(self, eresi_instr, proc):
+	def __init__(self, eresi_instr, op_buf, proc):
 		self.ei = eresi_instr
 		self.proc = proc
+		self.op_buf = op_buf
 
 	def __len__(self):
 		return instr_len(self.ei)
 	
 	def bytes(self):
-		#libasm never uses ptr_instr besides to assign to it. i suspect there may be a bug here
-		#print "ptr_instr: 0x%08x" % self.ei.ptr_instr
-		raise Exception("doesnt work right now")
 		return string_at(self.ei.ptr_instr, len(self))
 
 	def mnemonic(self):
@@ -403,7 +401,7 @@ class Asm(object):
 		if result < 0:
 			raise LibStatusErr("result from asm_read_instr was failure: %r" % result)
 
-		return Instr(instr, self)
+		return Instr(instr, buf, self)
 
 
 	def mnemonic(self, e_instr):
